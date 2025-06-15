@@ -64,7 +64,7 @@ export function CalendarGrid({ currentDate, bookings, onSlotClick, isAdmin }: Ca
       {/* Week day headers */}
       <div className="grid grid-cols-7 bg-gray-50">
         {weekDays.map((day) => (
-          <div key={day} className="p-2 text-center text-xs font-medium text-gray-500">
+          <div key={day} className="p-2 text-center text-xs font-bold text-black">
             {day}
           </div>
         ))}
@@ -75,43 +75,63 @@ export function CalendarGrid({ currentDate, bookings, onSlotClick, isAdmin }: Ca
         {days.map((day, index) => (
           <div key={index} className="border-b border-r border-gray-100 min-h-[80px] last:border-r-0">
             {day && (
-              <div className="p-1">
-                <div className={`text-xs font-medium mb-1 ${isToday(day) ? "text-blue-600" : "text-gray-900"}`}>
+              <div className="p-1 border-black border-2">
+                <div className={`text-xs font-bold mb-1 ${isToday(day) ? "text-blue-600" : "text-gray-900"}`}>
                   {day}
                 </div>
 
                 <div className="space-y-1">
-                  {/* Morning slot */}
-                  <button
-                    onClick={() => isAdmin && onSlotClick(formatDate(day), "morning")}
-                    className={`w-full flex items-center justify-center p-1 rounded text-xs ${
-                      isAdmin ? "hover:bg-gray-50" : ""
-                    }`}
-                    disabled={!isAdmin}
-                  >
-                    <Home
-                      className={`w-3 h-3 ${
-                        isBooked(formatDate(day), "morning") ? "text-green-500 fill-green-500" : "text-gray-300"
-                      }`}
-                    />
-                    <span className="ml-1 text-gray-500">{isAdmin ? "AM" : "AM"}</span>
-                  </button>
+                 {/* Morning slot */}
+<button
+  onClick={() => isAdmin && onSlotClick(formatDate(day), "morning")}
+  className={`w-full flex flex-col items-center justify-center p-1 rounded text-xs ${
+    isAdmin ? "hover:bg-gray-50" : ""
+  }`}
+  disabled={!isAdmin}
+>
+  <Home
+    className={`w-3 h-3 ${
+      isBooked(formatDate(day), "morning") ? "text-green-500 fill-green-500" : "text-gray-300"
+    }`}
+  />
+  <span className="text-black">AM</span>
 
-                  {/* Afternoon slot */}
-                  <button
-                    onClick={() => isAdmin && onSlotClick(formatDate(day), "afternoon")}
-                    className={`w-full flex items-center justify-center p-1 rounded text-xs ${
-                      isAdmin ? "hover:bg-gray-50" : ""
-                    }`}
-                    disabled={!isAdmin}
-                  >
-                    <Home
-                      className={`w-3 h-3 ${
-                        isBooked(formatDate(day), "afternoon") ? "text-green-500 fill-green-500" : "text-gray-300"
-                      }`}
-                    />
-                    <span className="ml-1 text-gray-500">{isAdmin ? "PM" : "PM"}</span>
-                  </button>
+  {/** Mostrar cliente si hay booking */}
+  {bookings
+    .filter((b) => b.date === formatDate(day) && b.timeSlot === "morning")
+    .map((b) => (
+      <span key={b.id} className="text-[10px] text-gray-600 truncate max-w-[70px]">
+        {b.clientName || b.description}
+      </span>
+    ))}
+</button>
+
+
+                 {/* Afternoon slot */}
+<button
+  onClick={() => isAdmin && onSlotClick(formatDate(day), "afternoon")}
+  className={`w-full flex flex-col items-center justify-center p-1 rounded text-xs ${
+    isAdmin ? "hover:bg-gray-50" : ""
+  }`}
+  disabled={!isAdmin}
+>
+  <Home
+    className={`w-3 h-3 ${
+      isBooked(formatDate(day), "afternoon") ? "text-green-500 fill-green-500" : "text-gray-300"
+    }`}
+  />
+  <span className="text-black">PM</span>
+
+  {/** Mostrar cliente si hay booking */}
+  {bookings
+    .filter((b) => b.date === formatDate(day) && b.timeSlot === "afternoon")
+    .map((b) => (
+      <span key={b.id} className="text-[10px] text-gray-600 truncate max-w-[70px]">
+        {b.clientName || b.description}
+      </span>
+    ))}
+</button>
+
                 </div>
               </div>
             )}

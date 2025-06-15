@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { X, Share2 } from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"
 
 interface Booking {
   id: string
@@ -41,22 +42,95 @@ export function BookingForm({ selectedSlot, existingBooking, onSave, onDelete, o
     setRecurrence(existingBooking?.recurrence || "once")
   }, [existingBooking])
 
-  const handleSave = () => {
-    if (description.trim() && clientName.trim() && address.trim()) {
-      onSave({
-        date: selectedSlot.date,
-        timeSlot: selectedSlot.timeSlot,
-        description: description.trim(),
-        clientName: clientName.trim(),
-        address: address.trim(),
-        recurrence,
-      })
+//Fetching data from supabase 
+
+
+
+const saveBookingToSupabase = async (booking: Omit<Booking, "id">) => {
+  const { data, error } = await supabase.from("bookings").insert({
+    date: booking.date,
+    time_slot: booking.timeSlot,
+    description: booking.description,
+    client_name: booking.clientName,
+    address: booking.address,
+    recurrence: booking.recurrence,
+  })
+
+  if (error) {
+    console.error("Error al guardar:", error)
+    return false
+  }
+  return true
+}
+
+
+const deleteBookingFromSupabase = async (date: string, timeSlot: "morning" | "afternoon") => {
+  const { error } = await supabase
+    .from("bookings")
+    .delete()
+    .eq("date", date)
+    .eq("time_slot", timeSlot)
+  if (error) {
+    console.error("Error al eliminar:", error)
+    return false
+  }
+  return true
+}
+
+const updateBookingInSupabase = async (booking: Booking) => {
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      date: booking.date,
+      time_slot: booking.timeSlot,
+      description: booking.description,
+      client_name: booking.clientName,
+      address: booking.address,
+      recurrence: booking.recurrence,
+    })
+    .eq("id", booking.id)
+
+  if (error) {
+    console.error("Error al actualizar:", error)
+    return false
+  }
+  return true
+}
+
+
+
+  const handleSave = async () => {
+  if (description.trim() && clientName.trim() && address.trim()) {
+    const booking: Omit<Booking, "id"> = {
+      date: selectedSlot.date,
+      timeSlot: selectedSlot.timeSlot,
+      description: description.trim(),
+      clientName: clientName.trim(),
+      address: address.trim(),
+      recurrence,
+    }
+
+    const success = existingBooking
+      ? await updateBookingInSupabase({ ...booking, id: existingBooking.id })
+      : await saveBookingToSupabase(booking)
+
+    if (success) {
+      onSave(booking) // Optional: pass data back to parent
     }
   }
+}
 
-  const handleDelete = () => {
+
+  const handleDelete = async () => {
+  const confirmed = confirm("¿Estás seguro de que quieres eliminar esta reserva?")
+  if (!confirmed) return
+
+  const success = await deleteBookingFromSupabase(selectedSlot.date, selectedSlot.timeSlot)
+  if (success) {
     onDelete(selectedSlot.date, selectedSlot.timeSlot)
   }
+}
+
 
   const handleShareAddress = async () => {
     try {
