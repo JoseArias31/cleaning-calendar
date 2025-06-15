@@ -47,20 +47,55 @@ export function BookingForm({ selectedSlot, existingBooking, onSave, onDelete, o
 
 
 const saveBookingToSupabase = async (booking: Omit<Booking, "id">) => {
-  const { data, error } = await supabase.from("bookings").insert({
-    date: booking.date,
-    time_slot: booking.timeSlot,
-    description: booking.description,
-    client_name: booking.clientName,
-    address: booking.address,
-    recurrence: booking.recurrence,
-  })
+  try {
+    // Log the data we're trying to save
+    console.log("Saving booking data:", {
+      date: booking.date,
+      time_slot: booking.timeSlot,
+      description: booking.description,
+      client_name: booking.clientName,
+      address: booking.address,
+      recurrence: booking.recurrence,
+    })
 
-  if (error) {
-    console.error("Error al guardar:", error)
-    return false
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert([{
+        date: booking.date,
+        time_slot: booking.timeSlot,
+        description: booking.description,
+        client_name: booking.clientName,
+        address: booking.address,
+        recurrence: booking.recurrence,
+      }])
+      .select()
+
+    if (error) {
+      console.error("Error al guardar:", error.message, error.details, error.hint)
+      return null
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No data returned after insert")
+      return null
+    }
+
+    // Transform the response to match our Booking interface
+    const savedBooking = {
+      id: data[0].id,
+      date: data[0].date,
+      timeSlot: data[0].time_slot,
+      description: data[0].description,
+      clientName: data[0].client_name,
+      address: data[0].address,
+      recurrence: data[0].recurrence
+    }
+
+    return savedBooking
+  } catch (error) {
+    console.error("Error inesperado:", error)
+    return null
   }
-  return true
 }
 
 
@@ -110,12 +145,17 @@ const updateBookingInSupabase = async (booking: Booking) => {
       recurrence,
     }
 
-    const success = existingBooking
-      ? await updateBookingInSupabase({ ...booking, id: existingBooking.id })
-      : await saveBookingToSupabase(booking)
+    let savedBooking
+    if (existingBooking) {
+      savedBooking = await updateBookingInSupabase({ ...booking, id: existingBooking.id })
+    } else {
+      savedBooking = await saveBookingToSupabase(booking)
+    }
 
-    if (success) {
-      onSave(booking) // Optional: pass data back to parent
+    if (savedBooking) {
+      onSave(booking)
+    } else {
+      console.error("Failed to save booking")
     }
   }
 }

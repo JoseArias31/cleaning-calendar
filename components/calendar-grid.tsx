@@ -76,9 +76,16 @@ export function CalendarGrid({ currentDate, bookings, onSlotClick, isAdmin }: Ca
           <div key={index} className="border-b border-r border-gray-100 min-h-[80px] last:border-r-0">
             {day && (
               <div className="p-1 border-black border-2">
-                <div className={`text-xs font-bold mb-1 ${isToday(day) ? "text-blue-600" : "text-gray-900"}`}>
+                <div className={`text-base font-bold mb-1 ${isToday(day) ? "text-blue-600" : "text-gray-900"}`}>
                   {day}
-                </div>
+                </div> {/** Mostrar cliente si hay booking */}
+  {/* {bookings
+    .filter((b) => b.date === formatDate(day) && b.timeSlot === "morning")
+    .map((b) => (
+      <span key={b.id} className="text-[10px] text-black  truncate max-w-[70px]">
+        {b.clientName || b.description}
+      </span>
+    ))} */}
 
                 <div className="space-y-1">
                  {/* Morning slot */}
@@ -90,20 +97,13 @@ export function CalendarGrid({ currentDate, bookings, onSlotClick, isAdmin }: Ca
   disabled={!isAdmin}
 >
   <Home
-    className={`w-3 h-3 ${
+    className={`w-4 h-4 ${
       isBooked(formatDate(day), "morning") ? "text-green-500 fill-green-500" : "text-gray-300"
     }`}
   />
   <span className="text-black">AM</span>
 
-  {/** Mostrar cliente si hay booking */}
-  {bookings
-    .filter((b) => b.date === formatDate(day) && b.timeSlot === "morning")
-    .map((b) => (
-      <span key={b.id} className="text-[10px] text-gray-600 truncate max-w-[70px]">
-        {b.clientName || b.description}
-      </span>
-    ))}
+ 
 </button>
 
 
@@ -116,7 +116,7 @@ export function CalendarGrid({ currentDate, bookings, onSlotClick, isAdmin }: Ca
   disabled={!isAdmin}
 >
   <Home
-    className={`w-3 h-3 ${
+    className={`w-4 h-4 ${
       isBooked(formatDate(day), "afternoon") ? "text-green-500 fill-green-500" : "text-gray-300"
     }`}
   />

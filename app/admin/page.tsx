@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CalendarGrid } from "@/components/calendar-grid"
 import { BookingForm } from "@/components/booking-form"
 import { MonthNavigation } from "@/components/month-navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"  
 
 export interface Booking {
   id: string
@@ -26,97 +27,69 @@ export default function AdminPage() {
     timeSlot: "morning" | "afternoon"
   } | null>(null)
 
+  const fetchBookings = async () => {
+    try {
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0])
+
+      if (error) {
+        console.error("Error fetching bookings:", error)
+        return
+      }
+
+      const transformedBookings = data.map(booking => ({
+        id: booking.id,
+        date: booking.date,
+        timeSlot: booking.time_slot,
+        description: booking.description,
+        clientName: booking.client_name,
+        address: booking.address,
+        recurrence: booking.recurrence
+      }))
+
+      setBookings(transformedBookings)
+    } catch (error) {
+      console.error("Error in fetchBookings:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchBookings()
+  }, [currentDate])
+
   const handleSlotClick = (date: string, timeSlot: "morning" | "afternoon") => {
     setSelectedSlot({ date, timeSlot })
   }
 
-  const generateRecurringBookings = (booking: Omit<Booking, "id">) => {
-    const bookingsToCreate: Omit<Booking, "id">[] = []
-    const startDate = new Date(booking.date)
-
-    if (booking.recurrence === "once") {
-      return [booking]
-    }
-
-    // Generate bookings for the next 6 months
-    const endDate = new Date(startDate)
-    endDate.setMonth(endDate.getMonth() + 6)
-
-    let currentDate = new Date(startDate)
-    let weekIncrement = 1
-
-    switch (booking.recurrence) {
-      case "weekly":
-        weekIncrement = 1
-        break
-      case "biweekly":
-        weekIncrement = 2
-        break
-      case "every3weeks":
-        weekIncrement = 3
-        break
-      case "monthly":
-        // Handle monthly separately
-        while (currentDate <= endDate) {
-          bookingsToCreate.push({
-            ...booking,
-            date: currentDate.toISOString().split("T")[0],
-          })
-          currentDate = new Date(currentDate)
-          currentDate.setMonth(currentDate.getMonth() + 1)
-        }
-        return bookingsToCreate
-    }
-
-    // Handle weekly, biweekly, and every 3 weeks
-    while (currentDate <= endDate) {
-      bookingsToCreate.push({
-        ...booking,
-        date: currentDate.toISOString().split("T")[0],
-      })
-      currentDate = new Date(currentDate)
-      currentDate.setDate(currentDate.getDate() + weekIncrement * 7)
-    }
-
-    return bookingsToCreate
+  const handleSaveBooking = async () => {
+    await fetchBookings()
+    setSelectedSlot(null)
   }
 
-  const handleSaveBooking = (booking: Omit<Booking, "id">) => {
-    const existingBookingIndex = bookings.findIndex((b) => b.date === booking.date && b.timeSlot === booking.timeSlot)
+  const handleDeleteBooking = async (date: string, timeSlot: "morning" | "afternoon") => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("date", date)
+        .eq("time_slot", timeSlot)
 
-    if (existingBookingIndex >= 0) {
-      // Update existing booking
-      const updatedBookings = [...bookings]
-      updatedBookings[existingBookingIndex] = {
-        ...booking,
-        id: bookings[existingBookingIndex].id,
+      if (error) {
+        console.error("Error deleting booking:", error)
+        return
       }
-      setBookings(updatedBookings)
-    } else {
-      // Generate recurring bookings or single booking
-      const bookingsToCreate = generateRecurringBookings(booking)
-      const newBookings = bookingsToCreate.map((b, index) => ({
-        ...b,
-        id: `${Date.now()}-${index}`,
-      }))
 
-      // Filter out bookings that would conflict with existing ones
-      const nonConflictingBookings = newBookings.filter(
-        (newBooking) =>
-          !bookings.some(
-            (existingBooking) =>
-              existingBooking.date === newBooking.date && existingBooking.timeSlot === newBooking.timeSlot,
-          ),
-      )
-
-      setBookings([...bookings, ...nonConflictingBookings])
+      await fetchBookings()
+      setSelectedSlot(null)
+    } catch (error) {
+      console.error("Error in handleDeleteBooking:", error)
     }
-    setSelectedSlot(null)
-  }
-
-  const handleDeleteBooking = (date: string, timeSlot: "morning" | "afternoon") => {
-    setBookings(bookings.filter((b) => !(b.date === date && b.timeSlot === timeSlot)))
-    setSelectedSlot(null)
   }
 
   const getBooking = (date: string, timeSlot: "morning" | "afternoon") => {
@@ -139,7 +112,12 @@ export default function AdminPage() {
 
         <MonthNavigation currentDate={currentDate} onDateChange={setCurrentDate} isSpanish={true} />
 
-        <CalendarGrid currentDate={currentDate} bookings={bookings} onSlotClick={handleSlotClick} isAdmin={true} />
+        <CalendarGrid 
+          currentDate={currentDate} 
+          bookings={bookings} 
+          onSlotClick={handleSlotClick} 
+          isAdmin={true} 
+        />
 
         {selectedSlot && (
           <BookingForm
