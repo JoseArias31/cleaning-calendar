@@ -7,46 +7,6 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
-// Sample data for demonstration
-const sampleBookings = [
-  {
-    id: "1",
-    date: "2024-12-15",
-    timeSlot: "morning" as const,
-    description: "Main Street House",
-    clientName: "John Smith",
-    address: "123 Main Street, Springfield",
-    recurrence: "weekly" as const,
-  },
-  {
-    id: "2",
-    date: "2024-12-15",
-    timeSlot: "afternoon" as const,
-    description: "Oak Avenue Apartment",
-    clientName: "Sarah Johnson",
-    address: "456 Oak Avenue, Apt 2B, Springfield",
-    recurrence: "biweekly" as const,
-  },
-  {
-    id: "3",
-    date: "2024-12-18",
-    timeSlot: "morning" as const,
-    description: "Downtown Office",
-    clientName: "ABC Company",
-    address: "789 Business Blvd, Downtown",
-    recurrence: "monthly" as const,
-  },
-  {
-    id: "4",
-    date: "2024-12-22",
-    timeSlot: "afternoon" as const,
-    description: "Suburban Home",
-    clientName: "Mike Wilson",
-    address: "321 Elm Street, Suburbia",
-    recurrence: "once" as const,
-  },
-]
-
 export default function PublicPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -68,7 +28,7 @@ export default function PublicPage() {
 
         <CalendarGrid
           currentDate={currentDate}
-          bookings={sampleBookings}
+          bookings={[]}
           onSlotClick={() => {}} // No-op for public view
           isAdmin={false}
         />
@@ -78,11 +38,16 @@ export default function PublicPage() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded"></div>
-              <span className="text-gray-600">Booked</span>
+              <span className="text-gray-600">Booked Slot</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-gray-300 rounded"></div>
-              <span className="text-gray-600">Available</span>
+              <span className="text-gray-600">Available Slot</span>
+            </div>
+            <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-400 rounded"></div>
+
+              <span className="text-gray-600">Fully Booked Day</span>
             </div>
           </div>
         </div>
