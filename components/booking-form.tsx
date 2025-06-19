@@ -42,6 +42,18 @@ export function BookingForm({ selectedSlot, existingBooking, onSave, onDelete, o
     setRecurrence(existingBooking?.recurrence || "once")
   }, [existingBooking])
 
+// Helper to add months safely
+function addMonths(date: Date, months: number) {
+  const d = new Date(date)
+  const day = d.getDate()
+  d.setMonth(d.getMonth() + months)
+  // If the new month doesn't have the original day, set to last day of month
+  if (d.getDate() < day) {
+    d.setDate(0)
+  }
+  return d
+}
+
 const generateRecurringBookings = (booking: Omit<Booking, "id">) => {
   const bookingsToCreate: Omit<Booking, "id">[] = []
   const startDate = new Date(booking.date)
@@ -67,18 +79,18 @@ const generateRecurringBookings = (booking: Omit<Booking, "id">) => {
     case "every3weeks":
       weekIncrement = 3
       break
-    case "monthly":
-      // Handle monthly separately
+    case "monthly": {
+      // Handle monthly separately, using helper
       while (currentDate <= endDate) {
         bookingsToCreate.push({
           ...booking,
           date: currentDate.toISOString().split("T")[0],
         })
-        currentDate = new Date(currentDate)
-        currentDate.setMonth(currentDate.getMonth() + 1)
+        currentDate = addMonths(currentDate, 1)
       }
       console.log('Monthly bookings:', bookingsToCreate)
       return bookingsToCreate
+    }
   }
 
   // Handle weekly, biweekly, and every 3 weeks
