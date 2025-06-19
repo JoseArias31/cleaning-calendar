@@ -42,32 +42,76 @@ export function BookingForm({ selectedSlot, existingBooking, onSave, onDelete, o
     setRecurrence(existingBooking?.recurrence || "once")
   }, [existingBooking])
 
-//Fetching data from supabase 
+const generateRecurringBookings = (booking: Omit<Booking, "id">) => {
+  const bookingsToCreate: Omit<Booking, "id">[] = []
+  const startDate = new Date(booking.date)
 
+  if (booking.recurrence === "once") {
+    return [booking]
+  }
 
+  // Generate bookings for the next 6 months
+  const endDate = new Date(startDate)
+  endDate.setMonth(endDate.getMonth() + 6)
+
+  let currentDate = new Date(startDate)
+  let weekIncrement = 1
+
+  switch (booking.recurrence) {
+    case "weekly":
+      weekIncrement = 1
+      break
+    case "biweekly":
+      weekIncrement = 2
+      break
+    case "every3weeks":
+      weekIncrement = 3
+      break
+    case "monthly":
+      // Handle monthly separately
+      while (currentDate <= endDate) {
+        bookingsToCreate.push({
+          ...booking,
+          date: currentDate.toISOString().split("T")[0],
+        })
+        currentDate = new Date(currentDate)
+        currentDate.setMonth(currentDate.getMonth() + 1)
+      }
+      console.log('Monthly bookings:', bookingsToCreate)
+      return bookingsToCreate
+  }
+
+  // Handle weekly, biweekly, and every 3 weeks
+  while (currentDate <= endDate) {
+    bookingsToCreate.push({
+      ...booking,
+      date: currentDate.toISOString().split("T")[0],
+    })
+    currentDate = new Date(currentDate)
+    currentDate.setDate(currentDate.getDate() + weekIncrement * 7)
+  }
+  console.log('Recurring bookings:', bookingsToCreate)
+  return bookingsToCreate
+}
 
 const saveBookingToSupabase = async (booking: Omit<Booking, "id">) => {
   try {
-    // Log the data we're trying to save
-    console.log("Saving booking data:", {
-      date: booking.date,
-      time_slot: booking.timeSlot,
-      description: booking.description,
-      client_name: booking.clientName,
-      address: booking.address,
-      recurrence: booking.recurrence,
-    })
+    // Generate all bookings including recurring ones
+    const bookingsToCreate = generateRecurringBookings(booking)
 
+    // Insert all bookings
     const { data, error } = await supabase
       .from("bookings")
-      .insert([{
-        date: booking.date,
-        time_slot: booking.timeSlot,
-        description: booking.description,
-        client_name: booking.clientName,
-        address: booking.address,
-        recurrence: booking.recurrence,
-      }])
+      .insert(
+        bookingsToCreate.map(booking => ({
+          date: booking.date,
+          time_slot: booking.timeSlot,
+          description: booking.description,
+          client_name: booking.clientName,
+          address: booking.address,
+          recurrence: booking.recurrence,
+        }))
+      )
       .select()
 
     if (error) {
@@ -80,7 +124,7 @@ const saveBookingToSupabase = async (booking: Omit<Booking, "id">) => {
       return null
     }
 
-    // Transform the response to match our Booking interface
+    // Return the first booking as the main booking
     const savedBooking = {
       id: data[0].id,
       date: data[0].date,
@@ -97,7 +141,6 @@ const saveBookingToSupabase = async (booking: Omit<Booking, "id">) => {
     return null
   }
 }
-
 
 const deleteBookingFromSupabase = async (date: string, timeSlot: "morning" | "afternoon") => {
   const { error } = await supabase
@@ -132,8 +175,6 @@ const updateBookingInSupabase = async (booking: Booking) => {
   return true
 }
 
-
-
   const handleSave = async () => {
   if (description.trim() && clientName.trim() && address.trim()) {
     const booking: Omit<Booking, "id"> = {
@@ -160,7 +201,6 @@ const updateBookingInSupabase = async (booking: Booking) => {
   }
 }
 
-
   const handleDelete = async () => {
   const confirmed = confirm("¿Estás seguro de que quieres eliminar esta reserva?")
   if (!confirmed) return
@@ -170,7 +210,6 @@ const updateBookingInSupabase = async (booking: Booking) => {
     onDelete(selectedSlot.date, selectedSlot.timeSlot)
   }
 }
-
 
   const handleShareAddress = async () => {
     try {
